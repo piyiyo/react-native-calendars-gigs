@@ -3,7 +3,17 @@ import PropTypes from 'prop-types';
 import XDate from 'xdate';
 
 import React, {Component} from 'react';
-import {ActivityIndicator, View, FlatList, StyleProp, ViewStyle, TextStyle, NativeSyntheticEvent, NativeScrollEvent, LayoutChangeEvent} from 'react-native';
+import {
+  ActivityIndicator,
+  View,
+  FlatList,
+  StyleProp,
+  ViewStyle,
+  TextStyle,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  LayoutChangeEvent
+} from 'react-native';
 
 import {extractReservationProps} from '../../componentUpdater';
 import {sameDate} from '../../dateutils';
@@ -11,7 +21,6 @@ import {toMarkingFormat} from '../../interface';
 import styleConstructor from './style';
 import Reservation, {ReservationProps} from './reservation';
 import {AgendaEntry, AgendaSchedule, DayAgenda} from '../../types';
-
 
 export type ReservationListProps = ReservationProps & {
   /** the list of items that have to be displayed in agenda. If you want to render item as empty date
@@ -50,6 +59,7 @@ export type ReservationListProps = ReservationProps & {
 
 interface State {
   reservations: DayAgenda[];
+  version: number;
 }
 
 class ReservationList extends Component<ReservationListProps, State> {
@@ -87,14 +97,14 @@ class ReservationList extends Component<ReservationListProps, State> {
   private scrollOver: boolean;
   private list: React.RefObject<FlatList> = React.createRef();
 
-
   constructor(props: ReservationListProps) {
     super(props);
 
     this.style = styleConstructor(props.theme);
 
     this.state = {
-      reservations: []
+      reservations: [],
+      version: 0
     };
 
     this.heights = [];
@@ -106,16 +116,27 @@ class ReservationList extends Component<ReservationListProps, State> {
     this.updateDataSource(this.getReservations(this.props).reservations);
   }
 
-  componentDidUpdate(prevProps: ReservationListProps) {
-    if (this.props.topDay && prevProps.topDay && prevProps !== this.props) {
-      this.setState({reservations: []},
-        () => this.updateReservations(this.props)
-      );
+  componentDidUpdate(prevProps: ReservationListProps, _prevState: State) {
+    const {items, selectedDay, showOnlySelectedDayItems, topDay} = this.props;
+
+    const itemsChanged = prevProps.items !== items;
+    const selectedDayChanged = selectedDay && prevProps.selectedDay && !sameDate(selectedDay, prevProps.selectedDay);
+
+    const showOnlyChanged = prevProps.showOnlySelectedDayItems !== showOnlySelectedDayItems;
+
+    const topDayChanged = topDay && prevProps.topDay && !sameDate(topDay, prevProps.topDay);
+
+    if (itemsChanged || selectedDayChanged || showOnlyChanged || topDayChanged) {
+      this.updateReservations(this.props);
     }
   }
 
   updateDataSource(reservations: DayAgenda[]) {
-    this.setState({reservations});
+    this.setState(prev => ({
+      ...prev,
+      reservations,
+      version: prev.version + 1
+    }));
   }
 
   updateReservations(props: ReservationListProps) {
@@ -247,23 +268,23 @@ class ReservationList extends Component<ReservationListProps, State> {
 
     return (
       <View onLayout={this.onRowLayoutChange.bind(this, index)}>
-        <Reservation {...reservationProps} item={item.reservation} date={item.date}/>
+        <Reservation {...reservationProps} item={item.reservation} date={item.date} />
       </View>
     );
   };
 
   keyExtractor = (item: DayAgenda, index: number) => {
-    return this.props.reservationsKeyExtractor?.(item, index) || `${item?.reservation?.day}${index}`;
+    return `${item?.reservation?.day}${index}${this.state.version}`;
   };
 
   render() {
     const {items, selectedDay, theme, style} = this.props;
 
-    if (!items || selectedDay && !items[toMarkingFormat(selectedDay)]) {
+    if (!items || (selectedDay && !items[toMarkingFormat(selectedDay)])) {
       if (isFunction(this.props.renderEmptyData)) {
         return this.props.renderEmptyData?.();
       }
-      return <ActivityIndicator style={this.style.indicator} color={theme?.indicatorColor}/>;
+      return <ActivityIndicator style={this.style.indicator} color={theme?.indicatorColor} />;
     }
 
     return (
@@ -274,6 +295,7 @@ class ReservationList extends Component<ReservationListProps, State> {
         data={this.state.reservations}
         renderItem={this.renderRow}
         keyExtractor={this.keyExtractor}
+        extraData={this.state.version}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={200}
         onMoveShouldSetResponderCapture={this.onMoveShouldSetResponderCapture}

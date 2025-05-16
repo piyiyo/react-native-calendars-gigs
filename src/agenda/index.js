@@ -35,7 +35,7 @@ export default class Agenda extends Component {
         onDayChange: PropTypes.func,
         renderKnob: PropTypes.func,
         renderList: PropTypes.func,
-        selected: PropTypes.any,
+        selected: PropTypes.any, //TODO: Should be renamed 'selectedDay' and inherited from ReservationList
         hideKnob: PropTypes.bool,
         showClosingKnob: PropTypes.bool
     };
@@ -242,7 +242,7 @@ export default class Agenda extends Component {
                 ...reservationListProps,
                 selectedDay: this.state.selectedDay,
                 topDay: this.state.topDay,
-                onDayChange: this.onDayChange,
+                onDayChange: this.onDayChange
             });
         }
         return (<ReservationList {...reservationListProps} ref={this.list} selectedDay={this.state.selectedDay} topDay={this.state.topDay} onDayChange={this.onDayChange}/>);
@@ -320,7 +320,7 @@ export default class Agenda extends Component {
         const scrollPadPosition = (shouldAllowDragging ? HEADER_HEIGHT : openCalendarScrollPadPosition) - KNOB_HEIGHT;
         const scrollPadStyle = {
             height: KNOB_HEIGHT,
-            top: scrollPadPosition,
+            top: scrollPadPosition
         };
         return (<View testID={testID} onLayout={this.onLayout} style={[style, this.style.container]}>
         <View style={this.style.reservations}>{this.renderReservations()}</View>

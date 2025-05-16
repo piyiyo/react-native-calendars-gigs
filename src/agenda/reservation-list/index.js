@@ -41,7 +41,8 @@ class ReservationList extends Component {
         super(props);
         this.style = styleConstructor(props.theme);
         this.state = {
-            reservations: []
+            reservations: [],
+            version: 0
         };
         this.heights = [];
         this.selectedDay = props.selectedDay;
@@ -50,13 +51,22 @@ class ReservationList extends Component {
     componentDidMount() {
         this.updateDataSource(this.getReservations(this.props).reservations);
     }
-    componentDidUpdate(prevProps) {
-        if (this.props.topDay && prevProps.topDay && prevProps !== this.props) {
-            this.setState({ reservations: [] }, () => this.updateReservations(this.props));
+    componentDidUpdate(prevProps, _prevState) {
+        const { items, selectedDay, showOnlySelectedDayItems, topDay } = this.props;
+        const itemsChanged = prevProps.items !== items;
+        const selectedDayChanged = selectedDay && prevProps.selectedDay && !sameDate(selectedDay, prevProps.selectedDay);
+        const showOnlyChanged = prevProps.showOnlySelectedDayItems !== showOnlySelectedDayItems;
+        const topDayChanged = topDay && prevProps.topDay && !sameDate(topDay, prevProps.topDay);
+        if (itemsChanged || selectedDayChanged || showOnlyChanged || topDayChanged) {
+            this.updateReservations(this.props);
         }
     }
     updateDataSource(reservations) {
-        this.setState({ reservations });
+        this.setState(prev => ({
+            ...prev,
+            reservations,
+            version: prev.version + 1
+        }));
     }
     updateReservations(props) {
         const { selectedDay, showOnlySelectedDayItems } = props;
@@ -175,17 +185,17 @@ class ReservationList extends Component {
       </View>);
     };
     keyExtractor = (item, index) => {
-        return this.props.reservationsKeyExtractor?.(item, index) || `${item?.reservation?.day}${index}`;
+        return `${item?.reservation?.day}${index}${this.state.version}`;
     };
     render() {
         const { items, selectedDay, theme, style } = this.props;
-        if (!items || selectedDay && !items[toMarkingFormat(selectedDay)]) {
+        if (!items || (selectedDay && !items[toMarkingFormat(selectedDay)])) {
             if (isFunction(this.props.renderEmptyData)) {
                 return this.props.renderEmptyData?.();
             }
             return <ActivityIndicator style={this.style.indicator} color={theme?.indicatorColor}/>;
         }
-        return (<FlatList ref={this.list} style={style} contentContainerStyle={this.style.content} data={this.state.reservations} renderItem={this.renderRow} keyExtractor={this.keyExtractor} showsVerticalScrollIndicator={false} scrollEventThrottle={200} onMoveShouldSetResponderCapture={this.onMoveShouldSetResponderCapture} onScroll={this.onScroll} refreshControl={this.props.refreshControl} refreshing={this.props.refreshing} onRefresh={this.props.onRefresh} onScrollBeginDrag={this.props.onScrollBeginDrag} onScrollEndDrag={this.props.onScrollEndDrag} onMomentumScrollBegin={this.props.onMomentumScrollBegin} onMomentumScrollEnd={this.props.onMomentumScrollEnd}/>);
+        return (<FlatList ref={this.list} style={style} contentContainerStyle={this.style.content} data={this.state.reservations} renderItem={this.renderRow} keyExtractor={this.keyExtractor} extraData={this.state.version} showsVerticalScrollIndicator={false} scrollEventThrottle={200} onMoveShouldSetResponderCapture={this.onMoveShouldSetResponderCapture} onScroll={this.onScroll} refreshControl={this.props.refreshControl} refreshing={this.props.refreshing} onRefresh={this.props.onRefresh} onScrollBeginDrag={this.props.onScrollBeginDrag} onScrollEndDrag={this.props.onScrollEndDrag} onMomentumScrollBegin={this.props.onMomentumScrollBegin} onMomentumScrollEnd={this.props.onMomentumScrollEnd}/>);
     }
 }
 export default ReservationList;

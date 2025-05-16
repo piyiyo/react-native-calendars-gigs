@@ -1,47 +1,79 @@
-import {ComponentDriver, getTextNodes} from 'react-component-driver';
-import CalendarHeader from '.';
-
-export class CalendarHeaderDriver extends ComponentDriver {
-  constructor(testID) {
-    super(CalendarHeader);
-    this.testID = testID;
-  }
-
-  getTitle() {
-    return getTextNodes(this.getByID(`${this.testID}.title`)).join('');
-  }
-
-  getDayNames() {
-    return getTextNodes(this.getByID(`${this.testID}.dayNames`));
-  }
-
-  getLoadingIndicator() {
-    return this.getByID(`${this.testID}.loader`);
-  }
-
-  getLeftArrow() {
-    return this.getByID(`${this.testID}.leftArrow`);
-  }
-
-  getRightArrow() {
-    return this.getByID(`${this.testID}.rightArrow`);
-  }
-
-  tapLeftArrow() {
-    const node = this.getLeftArrow();
-    if (!node) {
-      throw new Error('Left arrow not found.');
+import { render, fireEvent } from '@testing-library/react-native';
+export class CalendarHeaderDriver {
+    testID;
+    element;
+    renderTree;
+    constructor(element, testID) {
+        this.element = element;
+        this.renderTree = render(element);
+        this.testID = testID || element.props.testID;
     }
-    node.props.onClick();
-    return this;
-  }
-
-  tapRightArrow() {
-    const node = this.getRightArrow();
-    if (!node) {
-      throw new Error('Right arrow not found.');
+    isTextExists(text) {
+        let node;
+        try {
+            node = this.renderTree.queryByText(text);
+        }
+        catch (e) {
+            return false;
+        }
+        return !!node;
     }
-    node.props.onClick();
-    return this;
-  }
+    getTitle() {
+        let node;
+        try {
+            node = this.renderTree.getByTestId(`${this.testID}.title`).children[0];
+        }
+        catch (e) {
+            return;
+        }
+        return node;
+    }
+    getDayNames() {
+        const names = this.renderTree.queryAllByTestId(/dayName_/);
+        return names.map(name => name.children.join(''));
+    }
+    getLoadingIndicator() {
+        let node;
+        try {
+            node = this.renderTree.getByTestId(`${this.testID}.loader`);
+        }
+        catch (e) {
+            return;
+        }
+        return node;
+    }
+    getLeftArrow() {
+        let node;
+        try {
+            node = this.renderTree.getByTestId(`${this.testID}.leftArrow`);
+        }
+        catch (e) {
+            return;
+        }
+        return node;
+    }
+    getRightArrow() {
+        let node;
+        try {
+            node = this.renderTree.getByTestId(`${this.testID}.rightArrow`);
+        }
+        catch (e) {
+            return;
+        }
+        return node;
+    }
+    tapLeftArrow() {
+        const node = this.getLeftArrow();
+        if (!node) {
+            throw new Error('Left arrow not found.');
+        }
+        fireEvent.press(node);
+    }
+    tapRightArrow() {
+        const node = this.getRightArrow();
+        if (!node) {
+            throw new Error('Right arrow not found.');
+        }
+        fireEvent.press(node);
+    }
 }

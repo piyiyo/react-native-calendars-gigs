@@ -1,70 +1,65 @@
-import {ComponentDriver, getTextNodes} from 'react-component-driver';
-import {swipeDirections} from 'react-native-swipe-gestures';
-import Calendar from '.';
-import {BasicDayDriver} from './day/basic/driver';
-import {CalendarHeaderDriver} from './header/driver';
-
-export class CalendarDriver extends ComponentDriver {
-  constructor(testID = 'calendar') {
-    super(Calendar);
-    this.testID = testID;
-  }
-
-  withDefaultProps(props) {
-    return this.setProps({testID: this.testID, ...props});
-  }
-
-  isRootGestureRecognizer() {
-    return !!this.getComponent().props.onSwipe;
-  }
-
-  swipe(direction, state) {
-    this.getComponent().props.onSwipe(direction, state);
-    return this;
-  }
-
-  swipeLeft() {
-    this.swipe(swipeDirections.SWIPE_LEFT);
-    return this;
-  }
-
-  swipeRight() {
-    this.swipe(swipeDirections.SWIPE_RIGHT);
-    return this;
-  }
-
-  getHeader() {
-    const node = this.getByID(`${this.testID}.header`);
-    if (!node) {
-      throw new Error('Header not found.');
+import { render, act } from '@testing-library/react-native';
+//@ts-ignore
+import { swipeDirections } from 'react-native-swipe-gestures';
+import { DayDriver } from './day/driver';
+import { CalendarHeaderDriver } from './header/driver';
+export class CalendarDriver {
+    testID;
+    element;
+    renderTree;
+    constructor(element) {
+        this.element = element;
+        this.renderTree = render(element);
+        this.testID = element.props.testID;
     }
-    return new CalendarHeaderDriver(`${this.testID}.header`).attachTo(node);
-  }
-
-  getDay(dateString, type = 'basic') {
-    const testID = `${this.testID}.day_${dateString}`;
-    const node = this.getByID(testID);
-    if (!node) {
-      throw new Error(`Date ${dateString} not found.`);
+    /** Days */
+    getDay(date) {
+        return new DayDriver(this.element, `${this.testID}.day_${date}`);
     }
-
-    let dayDriver;
-    switch (type) {
-      case 'basic':
-        dayDriver = new BasicDayDriver();
-        break;
-      default:
-        throw new Error(`Day type ${type} is not supported.`);
+    getTextValues(elements) {
+        const values = elements.map(element => {
+            const testID = element.props.testID;
+            if (testID?.endsWith('.text')) {
+                return this.renderTree.getByTestId(testID).children[0];
+            }
+        });
+        return values.filter(value => !!value);
     }
-
-    return dayDriver.attachTo(node);
-  }
-
-  getDays() {
-    return getTextNodes(this.filterByID(new RegExp('day_')));
-  }
-
-  getWeekNumbers() {
-    return getTextNodes(this.filterByID(new RegExp('weekNumber_')));
-  }
+    getDays() {
+        return this.getTextValues(this.renderTree.queryAllByTestId(/day_/));
+    }
+    getWeekNumbers() {
+        return this.getTextValues(this.renderTree.queryAllByTestId(/weekNumber_/));
+    }
+    /** Header */
+    getHeader() {
+        return new CalendarHeaderDriver(this.element, `${this.testID}.header`);
+    }
+    /** GestureRecognizer */
+    queryElement(testID) {
+        const elements = this.renderTree.queryAllByTestId(testID);
+        if (elements.length > 1) {
+            console.warn(`Found more than one element with testID: ${testID}`);
+        }
+        return elements?.[0];
+    }
+    isRootGestureRecognizer() {
+        const node = this.queryElement(`${this.testID}.container`);
+        return !!node?.props?.onSwipe;
+    }
+    swipe(direction) {
+        // direction === 'left' ? this.getHeader().tapLeftArrow() : this.getHeader().tapRightArrow();
+        const node = this.queryElement(`${this.testID}.container`);
+        // console.log(this.element.props, tree?.props?.onSwipe);
+        // tree?.props?.onSwipe?.(direction);
+        // act(() => fireEvent(tree, 'onSwipe', direction));
+        act(() => node?.props?.onSwipe?.(direction));
+        // fireEvent(tree, 'onSwipe', direction);
+    }
+    swipeLeft() {
+        this.swipe(swipeDirections.SWIPE_LEFT);
+    }
+    swipeRight() {
+        this.swipe(swipeDirections.SWIPE_RIGHT);
+    }
 }
