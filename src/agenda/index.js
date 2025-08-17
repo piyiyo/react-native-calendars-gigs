@@ -178,8 +178,8 @@ export default class Agenda extends Component {
         // It needs to be scrolled to the bottom, so that when user moves finger downwards,
         // scroll position actually changes (it would stay at 0, when scrolled to the top).
         this.setScrollPadPosition(this.initialScrollPadPosition(), false);
-        // delay rendering calendar in full height because otherwise it still flickers sometimes
-        setTimeout(() => this.setState({ calendarIsReady: true }), 0);
+        // Removed setTimeout hack that caused disappearing CalendarList on Android.
+        this.setState({ calendarIsReady: true });
     };
     onCalendarListLayout = () => {
         this.calendar?.current?.scrollToDay(this.state.selectedDay, this.calendarOffset(), false);
@@ -251,7 +251,7 @@ export default class Agenda extends Component {
         const { markedDates, items } = this.props;
         const shouldHideExtraDays = this.state.calendarScrollable ? this.props.hideExtraDays : false;
         const calendarListProps = extractCalendarListProps(this.props);
-        return (<CalendarList {...calendarListProps} ref={this.calendar} current={getCalendarDateString(this.currentMonth.toString())} markedDates={this.generateMarkings(this.state.selectedDay, markedDates, items)} calendarWidth={this.viewWidth} scrollEnabled={this.state.calendarScrollable} hideExtraDays={shouldHideExtraDays} onLayout={this.onCalendarListLayout} onDayPress={this.onDayPress} onVisibleMonthsChange={this.onVisibleMonthsChange}/>);
+        return (<CalendarList key={'agenda-calendar-list'} {...calendarListProps} ref={this.calendar} current={getCalendarDateString(this.currentMonth.toString())} markedDates={this.generateMarkings(this.state.selectedDay, markedDates, items)} calendarWidth={this.viewWidth} scrollEnabled={this.state.calendarScrollable} hideExtraDays={shouldHideExtraDays} onLayout={this.onCalendarListLayout} onDayPress={this.onDayPress} onVisibleMonthsChange={this.onVisibleMonthsChange}/>);
     }
     renderKnob() {
         const { showClosingKnob, hideKnob, renderKnob } = this.props;
@@ -334,7 +334,7 @@ export default class Agenda extends Component {
           {this.renderWeekNumbersSpace()}
           {this.renderWeekDaysNames()}
         </Animated.View>
-        <Animated.ScrollView ref={this.scrollPad} style={[this.style.scrollPadStyle, scrollPadStyle]} overScrollMode="never" showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false} scrollEventThrottle={8} scrollsToTop={false} onTouchStart={this.onTouchStart} onTouchEnd={this.onTouchEnd} onScrollBeginDrag={this.onStartDrag} onScrollEndDrag={this.onSnapAfterDrag} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: this.state.scrollY } } }], { useNativeDriver: true })}>
+        <Animated.ScrollView ref={this.scrollPad} style={[this.style.scrollPadStyle, scrollPadStyle]} overScrollMode="never" showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false} scrollEventThrottle={8} scrollsToTop={false} onTouchStart={this.onTouchStart} onTouchEnd={this.onTouchEnd} onScrollBeginDrag={this.onStartDrag} onScrollEndDrag={this.onSnapAfterDrag} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: this.state.scrollY } } }], { useNativeDriver: false })}>
           <View testID={AGENDA_CALENDAR_KNOB} style={{ height: agendaHeight + KNOB_HEIGHT }} onLayout={this.onScrollPadLayout}/>
         </Animated.ScrollView>
       </View>);
