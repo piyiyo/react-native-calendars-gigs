@@ -59,6 +59,7 @@ export default class Agenda extends Component {
         this.viewWidth = windowSize.width;
         this.scrollTimeout = undefined;
         this.headerState = 'idle';
+        this.calendarOpacity = new Animated.Value(0);
         this.state = {
             scrollY: new Animated.Value(0),
             calendarIsReady: false,
@@ -183,6 +184,15 @@ export default class Agenda extends Component {
     };
     onCalendarListLayout = () => {
         this.calendar?.current?.scrollToDay(this.state.selectedDay, this.calendarOffset(), false);
+        if (!this.state.calendarVisible) {
+            this.setState({ calendarVisible: true }, () => {
+                Animated.timing(this.calendarOpacity, { 
+                    toValue: 1, 
+                    duration: 1000, 
+                    useNativeDriver: true 
+                }).start();
+            });
+        }
     };
     onLayout = (event) => {
         this.viewHeight = event.nativeEvent.layout.height;
@@ -325,7 +335,7 @@ export default class Agenda extends Component {
         return (<View testID={testID} onLayout={this.onLayout} style={[style, this.style.container]}>
         <View style={this.style.reservations}>{this.renderReservations()}</View>
         <Animated.View style={headerStyle}>
-          <Animated.View style={[this.style.animatedContainer, { transform: [{ translateY: contentTranslate }] }]}>
+          <Animated.View style={[this.style.animatedContainer, { transform: [{ translateY: contentTranslate }], opacity: this.calendarOpacity }]}>
             {this.renderCalendarList()}
           </Animated.View>
           {this.renderKnob()}
@@ -334,7 +344,7 @@ export default class Agenda extends Component {
           {this.renderWeekNumbersSpace()}
           {this.renderWeekDaysNames()}
         </Animated.View>
-        <Animated.ScrollView ref={this.scrollPad} style={[this.style.scrollPadStyle, scrollPadStyle]} overScrollMode="never" showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false} scrollEventThrottle={8} scrollsToTop={false} onTouchStart={this.onTouchStart} onTouchEnd={this.onTouchEnd} onScrollBeginDrag={this.onStartDrag} onScrollEndDrag={this.onSnapAfterDrag} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: this.state.scrollY } } }], { useNativeDriver: false })}>
+        <Animated.ScrollView ref={this.scrollPad} style={[this.style.scrollPadStyle, scrollPadStyle]} overScrollMode="never" showsHorizontalScrollIndicator={false} showsVerticalScrollIndicator={false} scrollEventThrottle={8} scrollsToTop={false} contentOffset={{ x:0, y: this.initialScrollPadPosition()}} onTouchStart={this.onTouchStart} onTouchEnd={this.onTouchEnd} onScrollBeginDrag={this.onStartDrag} onScrollEndDrag={this.onSnapAfterDrag} onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: this.state.scrollY } } }], { useNativeDriver: false })}>
           <View testID={AGENDA_CALENDAR_KNOB} style={{ height: agendaHeight + KNOB_HEIGHT }} onLayout={this.onScrollPadLayout}/>
         </Animated.ScrollView>
       </View>);
